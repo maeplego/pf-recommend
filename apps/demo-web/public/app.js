@@ -18,6 +18,24 @@ function fmt(value) {
   return Number(value).toFixed(4);
 }
 
+function fillSelect(select, values) {
+  select.replaceChildren();
+  for (const value of values) {
+    const opt = document.createElement("option");
+    opt.value = String(value);
+    opt.textContent = String(value);
+    select.appendChild(opt);
+  }
+}
+
+function appendCells(tr, values) {
+  for (const value of values) {
+    const td = document.createElement("td");
+    td.textContent = String(value);
+    tr.appendChild(td);
+  }
+}
+
 async function fetchJson(path) {
   const res = await fetch(`${apiBase}${path}`);
   const body = await res.json();
@@ -31,24 +49,30 @@ function renderUsers() {
   const ns = namespaceEl.value;
   const model = models.find((row) => row.namespace === ns);
   const users = model ? [...model.sample_user_ids, model.cold_start_user_id] : ["new-user"];
-  userEl.innerHTML = users.map((id) => `<option value="${id}">${id}</option>`).join("");
+  fillSelect(userEl, users);
 }
 
 function renderMetrics() {
   const ns = namespaceEl.value;
   const model = models.find((row) => row.namespace === ns);
-  metricsEl.innerHTML = "";
+  metricsEl.replaceChildren();
   if (!model) return;
   for (const [name, row] of Object.entries(model.metrics || {})) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${name}</td><td>${fmt(row.recall_at_k)}</td><td>${fmt(row.ndcg_at_k)}</td><td>${row.n_eval_users}</td><td>${row.n_cold_start_users}</td>`;
+    appendCells(tr, [
+      name,
+      fmt(row.recall_at_k),
+      fmt(row.ndcg_at_k),
+      row.n_eval_users,
+      row.n_cold_start_users,
+    ]);
     metricsEl.appendChild(tr);
   }
   metaEl.textContent = `${model.namespace} ${model.version} · cutoff ${model.cutoff} · ${model.n_users} users / ${model.n_items} items`;
 }
 
 function renderList(target, items, onClick) {
-  target.innerHTML = "";
+  target.replaceChildren();
   for (const item of items) {
     const li = document.createElement("li");
     const btn = document.createElement("button");
@@ -81,13 +105,13 @@ async function recommend() {
   const body = await fetchJson(`/v1/recommend?namespace=${encodeURIComponent(ns)}&user_id=${encodeURIComponent(user)}&k=${k}`);
   statusEl.textContent = `${body.model}${body.fallback ? " (cold-start fallback)" : ""} · ${body.version}`;
   renderList(recsEl, body.items, loadSimilar);
-  similarEl.innerHTML = "";
+  similarEl.replaceChildren();
 }
 
 async function boot() {
   const payload = await fetchJson("/v1/models");
   models = payload.models || [];
-  namespaceEl.innerHTML = models.map((row) => `<option value="${row.namespace}">${row.namespace}</option>`).join("");
+  fillSelect(namespaceEl, models.map((row) => row.namespace));
   if (!models.length) {
     statusEl.textContent = "no trained models yet";
     return;
