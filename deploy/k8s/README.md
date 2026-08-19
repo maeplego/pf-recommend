@@ -1,11 +1,5 @@
-# P07 recommend Kubernetes
+# Kubernetes マニフェスト（P07 recommend）
 
-Inference API in namespace `p07`. Init container `pf-recommend-train` writes models to an emptyDir; the API serves them from `RECOMMEND_MODELS_DIR=/models`.
+推論 API（namespace `p07`）です。起動時に train が小さなフィクスチャを書き、API が読みます。このフォルダだけを apply しないでください。commerce overlay と talent overlay から参照します。
 
-Do not apply this folder alone for the demo — overlay D (commerce) and overlay C (talent) reference it.
-
-| Service | Port | Notes |
-| --- | --- | --- |
-| `api` | 8098 | `GET /v1/recommend`, `GET /v1/similar-items`. Ingress `recommend-api.localhost` on overlays C/D |
-
-Train runs once per pod start (tiny fixtures). Serving fail-closes in P06/P10 adapters; this API still returns 404 for unknown item ids.
+`recommend-api.localhost` で `GET /v1/recommend` と `GET /v1/similar-items` です。未知の item id は 404 です。呼び出し側はフォールバックします。

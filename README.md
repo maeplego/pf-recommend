@@ -1,23 +1,17 @@
 # pf-recommend
 
-P07 recommendation training and inference. **Not a production recommender.** MovieLens (or the fictional CI subset) only — no real customer logs.
+学習用の推薦です。学習ジョブと HTTP 推論は別プロセスで、指標・スキーマ・JSON 成果物を共有します。使うデータは MovieLens か、CI 用の架空サブセットだけです。**実顧客ログは使いません。本番レコメンドの置き換えではありません。**
 
-Learning job and HTTP inference are separate processes. They share metrics, interaction schemas, and JSON artifacts.
-
-## Layout
-
-| Path | Role |
+| ディレクトリ | 役割 |
 | --- | --- |
-| `apps/api` | FastAPI inference |
-| `apps/train` | Batch CLI (time-based split, popularity + item-item) |
-| `apps/demo-web` | User switcher for MovieLens-shaped data |
-| `packages/metrics` | Recall@K, NDCG@K, time-based split |
-| `packages/schemas` | Interaction / item contracts |
-| `packages/runtime` | Artifact load + lookup ranking (no full matrix on the request path) |
-| `testdata/` | Tiny fictional fixtures for CI and Compose |
-| `models/` | Local artifacts (gitignored) |
+| `apps/api` | FastAPI 推論 |
+| `apps/train` | バッチ学習（時間分割、人気 + item-item） |
+| `apps/demo-web` | ユーザー切替デモ |
+| `packages/metrics` | Recall@K、NDCG@K |
+| `testdata/` | CI / Compose 用の架空データ |
+| `models/` | 成果物（Git に入れない） |
 
-## Compose (required demo)
+## 起動
 
 ```powershell
 cd deploy
@@ -25,89 +19,28 @@ copy .env.example .env
 docker compose --env-file .env up --build
 ```
 
-- API: http://localhost:8098/health  ·  OpenAPI: http://localhost:8098/docs
-- Demo: http://localhost:3008
-- Train runs once on `testdata/ml-tiny` (movies) and `testdata/jobs-tiny` (jobs), then exits. The API volume-mounts the artifacts.
+| URL | 用途 |
+| --- | --- |
+| http://localhost:3008 | デモ UI |
+| http://localhost:8098/health | API |
+| http://localhost:8098/docs | OpenAPI |
 
-Stop with `docker compose down`.
+学習は `testdata/ml-tiny`（映画）と `testdata/jobs-tiny`（求人）で一度走り、終了します。API はその成果物を読みます。
 
-## Tests (host)
+## テスト
 
 ```powershell
 python -m pip install -e ".[dev,api,train]"
 python -m pytest
 ```
 
-CI uses the fictional fixture, not a GroupLens download.
+公開 MovieLens `ml-latest-small`（約 100k 件）を使うときは、学習時にダウンロードします。Git には置きません。ライセンスは [GroupLens](https://grouplens.org/datasets/movielens/) に従ってください。`testdata/ml-tiny` のタイトルは創作です。
 
-## Train on public MovieLens
+## API の要点
 
-`ml-latest-small` is about 100k ratings (~1MB zip). It is **not** stored in git. Download at train time:
+- `GET /v1/similar-items?namespace=&item_id=&k=` — 類似アイテム。求人側は `namespace=jobs`
+- `GET /v1/recommend?namespace=&user_id=` — ユーザー向け。未知ユーザーは人気へフォールバック
+- 未知のアイテムは 404。呼び出し側はスキル重複などへ戻します
+- オンライン学習はありません。再学習は CLI です
 
-```powershell
-python -m pip install -e ".[train]"
-python -m recommend_train --download ml-latest-small --namespace movies --out models --k 10
-```
-
-Source: [GroupLens MovieLens](https://grouplens.org/datasets/movielens/). Follow their license for redistribution. The `testdata/ml-tiny` titles are invented and are not MovieLens content.
-
-Do not point `--download` at ml-25m in this repo; the inference artifacts are JSON neighbor lists, not a giant `npy`.
-
-## API (P10 contract)
-
-P10 talent-api calls this shape when `RECOMMEND_API_URL` is set. This repo does not call P10.
-
-### `GET /v1/similar-items`
-
-| Query | Type | Notes |
-| --- | --- | --- |
-| `namespace` | string | P10 sends `jobs`. Also `movies` (and later `commerce`). |
-| `item_id` | string | Opaque string (MovieLens id or P10 job ULID). |
-| `k` | int | Default 10, max 50. |
-
-**200**
-
-```json
-{
-  "namespace": "jobs",
-  "item_id": "job_go_api",
-  "model": "item_item",
-  "version": "…",
-  "items": [
-    { "item_id": "job_go_k8s", "score": 0.91, "title": "Go platform engineer", "reason": "item_item" }
-  ]
-}
-```
-
-P10 only needs `items[].item_id`. Extra fields are safe to ignore.
-
-**404** `{ "error": { "code": "not_found", "message": "…" } }` — unknown namespace or item. P10 treats non-OK as skill-overlap fallback.
-
-**503** `/ready` when no namespace has been trained yet.
-
-Until a jobs model is trained on P10 ids, similar-items for real job ULIDs 404s and P10 should keep its fallback. The Compose jobs fixture uses fictional ids (`job_go_api`, …) only to prove the path.
-
-### Other routes
-
-| Method | Path | Role |
-| --- | --- | --- |
-| GET | `/health` | Liveness `{ "ok": true }` |
-| GET | `/ready` | At least one loaded namespace |
-| GET | `/v1/recommend?namespace=&user_id=&k=10` | User ranking. Unknown user → popularity, `fallback: true` |
-| GET | `/v1/models` | Version, time-split cutoff, Recall@K / NDCG@K |
-| POST | `/v1/events` | Append-only JSONL for a later retrain. No online learning |
-
-There is **no** public `/admin/train`. Retrain with the CLI.
-
-## Evaluation
-
-Training always holds out later interactions (`packages/metrics.split_by_time`). Random split is not implemented and is not a completion criterion. Users with no pre-cutoff history are counted as cold-start, not as CF eval users.
-
-## Limits
-
-- File-backed registry (`manifest.json` written last). Postgres / MinIO are not wired.
-- Item-item cosine on implicit co-occurrence, plus a popularity baseline. No implicit/LightFM, no ANN cluster, no A/B.
-- P06 commerce adapter is not implemented. P10 overlay wiring is not implemented here.
-- Redis cache is not used; lookups are dicts from JSON.
-
-Design: `project/portfolio-plan/recommend/DESIGN.md` and `docs/`.
+設計の詳細は [portfolio-plan](https://github.com/maeplego/portfolio-plan) の `portfolio-plan/recommend/docs/` です。
