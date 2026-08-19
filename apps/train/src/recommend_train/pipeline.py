@@ -68,6 +68,7 @@ def run_train(
         "popularity": evaluate(draft, split.test, k=k, force_popularity=True),
         "item_item": evaluate(draft, split.test, k=k, force_popularity=False),
     }
+    # Serving fail-closes when CF is worse than popularity; still persist both metrics.
     _print_report(namespace, split.cutoff, metrics, k)
 
     store = ArtifactStore(out)

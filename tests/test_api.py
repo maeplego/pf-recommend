@@ -39,6 +39,21 @@ def _trained_client(tmp_path: Path) -> TestClient:
         download=None,
         cache_dir=tmp_path / "cache",
     )
+    run_train(
+        out=tmp_path,
+        namespace="commerce",
+        k=3,
+        neighbor_k=5,
+        min_rating=0.0,
+        test_fraction=0.2,
+        cutoff="1593561600",
+        ratings=None,
+        movies=None,
+        events=ROOT / "testdata" / "commerce-tiny" / "events.csv",
+        items=ROOT / "testdata" / "commerce-tiny" / "items.csv",
+        download=None,
+        cache_dir=tmp_path / "cache",
+    )
     return TestClient(create_app(tmp_path))
 
 
@@ -50,7 +65,7 @@ def test_health_and_models(tmp_path: Path) -> None:
     assert "movies" in ready.json()["namespaces"]
     models = client.get("/v1/models").json()["models"]
     names = {row["namespace"] for row in models}
-    assert names == {"jobs", "movies"}
+    assert names == {"jobs", "movies", "commerce"}
 
 
 def test_recommend_known_user_and_cold_start(tmp_path: Path) -> None:
@@ -82,6 +97,33 @@ def test_similar_items_jobs_contract_for_p10(tmp_path: Path) -> None:
     ids = [item["item_id"] for item in body["items"]]
     assert "job_go_k8s" in ids
     assert "job_go_api" not in ids
+
+
+def test_similar_items_commerce_sku_contract_for_p06(tmp_path: Path) -> None:
+    """P06 BFF maps item_id to catalog SKU (MUG-1 / TEE-1 / STK-1)."""
+    client = _trained_client(tmp_path)
+    res = client.get(
+        "/v1/similar-items",
+        params={"namespace": "commerce", "item_id": "MUG-1", "k": 5},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["namespace"] == "commerce"
+    ids = [item["item_id"] for item in body["items"]]
+    assert "TEE-1" in ids
+    assert "MUG-1" not in ids
+
+
+def test_commerce_cold_start_recommend_falls_back(tmp_path: Path) -> None:
+    client = _trained_client(tmp_path)
+    res = client.get(
+        "/v1/recommend",
+        params={"namespace": "commerce", "user_id": "brand-new-shopper", "k": 5},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["fallback"] is True
+    assert body["items"]
 
 
 def test_unknown_jobs_item_is_not_ok_so_p10_can_fallback(tmp_path: Path) -> None:

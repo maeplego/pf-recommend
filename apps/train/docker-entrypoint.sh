@@ -18,3 +18,11 @@ python -m recommend_train \
   --out "$OUT" \
   --k 3 \
   --cutoff 1593561600
+
+python -m recommend_train \
+  --events testdata/commerce-tiny/events.csv \
+  --items testdata/commerce-tiny/items.csv \
+  --namespace commerce \
+  --out "$OUT" \
+  --k 3 \
+  --cutoff 1593561600
