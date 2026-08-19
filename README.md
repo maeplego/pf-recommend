@@ -110,4 +110,4 @@ Training always holds out later interactions (`packages/metrics.split_by_time`).
 - P06 commerce adapter is not implemented. P10 overlay wiring is not implemented here.
 - Redis cache is not used; lookups are dicts from JSON.
 
-Design: `project/portfolio-plan/recommend/DESIGN.md`
+Design: `project/portfolio-plan/recommend/DESIGN.md` and `docs/`.
