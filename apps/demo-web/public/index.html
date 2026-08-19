@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pf-recommend — MovieLens demo</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">P07 recommend</p>
+      <h1>Offline-trained recommendations</h1>
+      <p class="lede">
+        Pick a user. Known users get item-item collaborative filtering.
+        <code>new-user</code> is a cold start and falls back to popularity.
+        Evaluation used a <strong>time-based</strong> split, not a random split.
+      </p>
+    </header>
+
+    <section class="controls">
+      <label>
+        Namespace
+        <select id="namespace"></select>
+      </label>
+      <label>
+        User
+        <select id="user"></select>
+      </label>
+      <label>
+        k
+        <input id="k" type="number" min="1" max="20" value="5" />
+      </label>
+      <button id="run" type="button">Recommend</button>
+    </section>
+
+    <p id="status" class="status"></p>
+
+    <section class="grid">
+      <article>
+        <h2>Recommendations</h2>
+        <ol id="recs"></ol>
+      </article>
+      <article>
+        <h2>Similar items</h2>
+        <p class="hint">Click a recommendation to load neighbors.</p>
+        <ol id="similar"></ol>
+      </article>
+    </section>
+
+    <section>
+      <h2>Offline metrics</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>model</th>
+              <th>Recall@K</th>
+              <th>NDCG@K</th>
+              <th>eval users</th>
+              <th>cold-start users</th>
+            </tr>
+          </thead>
+          <tbody id="metrics"></tbody>
+        </table>
+      </div>
+      <p id="model-meta" class="hint"></p>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

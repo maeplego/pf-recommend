@@ -1,0 +1,1 @@
+apps/train/docker-entrypoint.sh text eol=lf

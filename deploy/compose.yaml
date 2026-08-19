@@ -1,0 +1,49 @@
+services:
+  recommend-train:
+    build:
+      context: ..
+      dockerfile: apps/train/Dockerfile
+    environment:
+      RECOMMEND_MODELS_DIR: /models
+    volumes:
+      - recommend-models:/models
+
+  recommend-api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      RECOMMEND_MODELS_DIR: /models
+      RECOMMEND_HTTP_PORT: "8098"
+      RECOMMEND_CORS_ORIGIN: ${RECOMMEND_CORS_ORIGIN:-http://localhost:3008}
+    ports:
+      - "8098:8098"
+    volumes:
+      - recommend-models:/models
+    depends_on:
+      recommend-train:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8098/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  recommend-web:
+    build:
+      context: ../apps/demo-web
+      dockerfile: Dockerfile
+    ports:
+      - "3008:80"
+    depends_on:
+      recommend-api:
+        condition: service_healthy
+
+volumes:
+  recommend-models:
