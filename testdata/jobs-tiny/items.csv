@@ -1,0 +1,6 @@
+item_id,title,tags
+job_go_api,Staff Go API engineer,Go|PostgreSQL
+job_go_k8s,Go platform engineer,Go|Kubernetes
+job_python_ml,Python ML engineer,Python|Recommend
+job_python_etl,Python data engineer,Python|dbt
+job_frontend,TypeScript frontend engineer,TypeScript|React

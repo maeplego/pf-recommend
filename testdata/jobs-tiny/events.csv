@@ -1,0 +1,13 @@
+user_id,item_id,type,at
+cand_a,job_go_api,apply,1577836800
+cand_a,job_go_k8s,bookmark,1577923200
+cand_b,job_go_api,apply,1578009600
+cand_b,job_go_k8s,apply,1578096000
+cand_b,job_python_ml,view,1578182400
+cand_c,job_python_ml,apply,1578268800
+cand_c,job_python_etl,bookmark,1578355200
+cand_d,job_frontend,apply,1578441600
+cand_e,job_go_api,view,1578528000
+cand_e,job_go_k8s,apply,1578614400
+cand_a,job_python_ml,view,1593561600
+cand_c,job_frontend,view,1593648000
