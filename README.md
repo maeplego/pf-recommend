@@ -25,7 +25,13 @@ docker compose --env-file .env up --build
 | http://localhost:8098/health | API |
 | http://localhost:8098/docs | OpenAPI |
 
-学習は `testdata/ml-tiny`（映画）と `testdata/jobs-tiny`（求人）で一度走り、終了します。API はその成果物を読みます。
+Compose 起動時、`recommend-train` が次の 3 namespace を一度学習して終了し、API がその成果物を読みます。
+
+| namespace | データ |
+| --- | --- |
+| `movies` | `testdata/ml-tiny` |
+| `jobs` | `testdata/jobs-tiny`（P10） |
+| `commerce` | `testdata/commerce-tiny`（P06。item_id＝SKU） |
 
 ## テスト
 
@@ -38,10 +44,10 @@ python -m pytest
 
 ## API の要点
 
-- `GET /v1/similar-items?namespace=&item_id=&k=` — 類似アイテム。求人側は `namespace=jobs`
+- `GET /v1/similar-items?namespace=&item_id=&k=` — 類似アイテム。求人は `namespace=jobs`、EC は `namespace=commerce`
 - `GET /v1/recommend?namespace=&user_id=` — ユーザー向け。未知ユーザーは人気へフォールバック
-- 未知のアイテムは 404。呼び出し側はスキル重複などへ戻します
-- オンライン学習はありません。再学習は CLI です
+- `POST /v1/events` — 追記ログのみ。**オンライン学習も自動再学習も無い**。再学習は手動で `recommend-train`（または Compose の train ジョブ）を再実行する
+- 未知のアイテムは 404。呼び出し側（commerce BFF / talent）はカタログ順やスキル重なりなどへ戻します
 
 設計の詳細は [portfolio-plan](https://github.com/maeplego/portfolio-plan) の `portfolio-plan/recommend/docs/` です。
 
