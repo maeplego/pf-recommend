@@ -1,4 +1,4 @@
-# pf-recommend
+﻿# pf-recommend
 
 学習用の推薦です。学習ジョブと HTTP 推論は別プロセスで、指標・スキーマ・JSON 成果物を共有します。使うデータは MovieLens か、CI 用の架空サブセットだけです。**実顧客ログは使いません。本番レコメンドの置き換えではありません。**
 
@@ -44,3 +44,13 @@ python -m pytest
 - オンライン学習はありません。再学習は CLI です
 
 設計の詳細は [portfolio-plan](https://github.com/maeplego/portfolio-plan) の `portfolio-plan/recommend/docs/` です。
+
+## ライセンスと利用条件
+
+本リポジトリは **デモ・学習・社内評価用** です。現状品質に **保証はありません**。
+
+- 許可: クローン、ローカル実行、学習、非本番の評価
+- 別契約が必要: 本番運用、有償サービスへの組込み、再販・托管の提供
+
+詳細は [LICENSE](./LICENSE) と [licensing.md](https://github.com/maeplego/portfolio-plan/blob/master/portfolio-plan/licensing.md) を参照してください。
+
